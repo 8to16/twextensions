@@ -1,22 +1,51 @@
 # Mesh
 
-Mesh lets you communicate with other projects running in the same browser or in TurboWarp Desktop, using a special type of message called a mesh.
+Mesh lets you communicate with other projects running in the same browser or in TurboWarp Desktop, using special versions of variables and broadcasts. This allows you to for example, create a game that talks to another project running at the same time.
+
+> [!NOTE]
+> Only projects running in the same browser as another will receive messages. However, projects running in a different window will work.
 
 ## Setup
 
-To setup a connection between a project, create a mesh in one project, and then create another mesh with the same name in another project.
+To setup a connection between a project, create a broadcast or variable in one project, and then create another of the same type and name in another project.
 
 ## Blocks
 
-```scratch
-broadcast mesh (mesh name v) :: #00acff
-```
-This block sends a mesh to all other projects that have the extension running. It triggers the hat block below in projects that listen for the mesh.
+The blocks below are equivalent to other blocks in Scratch, but are received by other projects too.
+
+### Broadcasts
 
 ```scratch
-when I receive mesh [mesh name v] :: #00acff hat
+when I receive [message v] :: #4cdab2 hat
 ```
-This block will activate when another project sends *this* project a mesh with the same name. It is triggered using the block above in any other project.
+This block will activate when another project sends *this* project a message with the same name. It is triggered using the block above in any other project.
 
-> [!IMPORTANT]
-> Projects cannot access variables or lists stored in each other, even if they have the same name and they are being used in a mesh.
+```scratch
+broadcast (message v) :: #4cdab2
+```
+This block sends a message to all other projects that have the extension running. It triggers the hat block below in projects that listen for the message.
+
+```scratch
+broadcast (message v) and wait :: #4cdab2
+```
+This is similar to the block above, but waits for the broadcast to end before continuing to run the script.
+
+### Variables
+
+```scratch
+(get (variable v) :: #4cdab2)
+```
+
+This block gets the value of a mesh variable.
+
+```scratch
+set (variable v) to [value] :: #4cdab2
+```
+
+This block sets the value of a mesh variable in all currently connected projects.
+
+```scratch
+change (variable v) by (1) :: #4cdab2
+```
+
+This block increments the value of a mesh variable in all currently connected projects by the specified number.

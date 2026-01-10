@@ -13,72 +13,142 @@
   const vm = Scratch.vm;
 
   const bc = new BroadcastChannel("extensions.turbowarp.org/8to16/mesh");
+  let lastSuccessfulMeshage = "";
 
+  if (!vm.runtime.extensionStorage.mesh)
+    vm.runtime.extensionStorage.mesh = { messages: [], variables: {} };
   vm.runtime.on("RUNTIME_DISPOSED", () => {
-    vm.runtime.extensionStorage.meshages = [];
+    vm.runtime.extensionStorage.mesh = { messages: [], variables: {} };
   });
   vm.runtime.on("PROJECT_LOADED", () => {
     vm.runtime.extensionManager.refreshBlocks();
   });
 
   // Spaghetti ahead!
-  const getMeshages = () => vm.runtime.extensionStorage?.meshages ?? [];
+  const getMeshages = () => vm.runtime.extensionStorage?.mesh.messages ?? [];
   const addMeshage = (name) => {
     if (getMeshages().includes(name)) return;
     if (name === "") return;
-    vm.runtime.extensionStorage.meshages = [...getMeshages(), name].sort();
+    vm.runtime.extensionStorage.mesh.messages = [...getMeshages(), name];
     vm.extensionManager.refreshBlocks();
   };
   const delMeshage = (name) => {
-    vm.runtime.extensionStorage.meshages = getMeshages().filter(
+    if (!getMeshages().includes(name)) return;
+    vm.runtime.extensionStorage.mesh.messages = getMeshages().filter(
       (n) => n !== name
     );
     vm.extensionManager.refreshBlocks();
   };
 
-  // taken from local-storage
-  const session = (() => {
-    // doesn't need to be cryptographically secure and doesn't need to have excessive length
-    // this has 16^16 = 18446744073709551616 possible session IDs which is plenty
-    const soup = "0123456789abcdef";
-    let id = "";
-    for (let i = 0; i < 16; i++) {
-      id += soup[Math.floor(Math.random() * soup.length)];
-    }
-    return id;
-  })();
-
-  bc.onmessage = ({ data }) => {
-    if (data.session === session) return;
-    vm.runtime.startHats("eightxtwoMesh_when", {
-      BROADCAST: data.name,
-    });
+  const getMeshVars = () => vm.runtime.extensionStorage?.mesh.variables ?? {};
+  const addMeshVar = (name) => {
+    if (Object.keys(getMeshVars()).includes(name)) return;
+    if (name === "") return;
+    vm.runtime.extensionStorage.mesh.variables = {
+      ...getMeshVars(),
+      [name]: "",
+    };
+    vm.extensionManager.refreshBlocks();
+  };
+  const delMeshVar = (name) => {
+    if (Object.keys(getMeshVars()).includes(name)) return;
+    vm.runtime.extensionStorage.mesh.variables = Object.fromEntries(
+      Object.entries(getMeshVars()).filter((v) => v[0] !== name)
+    );
+    vm.extensionManager.refreshBlocks();
   };
 
+  bc.onmessage = async ({ data }) => {
+    switch (data.type) {
+      case "broadcast": {
+        let hats = vm.runtime.startHats("eightxtwoMesh_when", {
+          BROADCAST: data.name,
+        });
+        if (data.willWait) {
+          await new Promise((resolve) => {
+            const poll = () => {
+              if (
+                hats.filter(
+                  (thread) => vm.runtime.threads.indexOf(thread) === -1
+                ).length === 0
+              )
+                resolve();
+              else setTimeout(poll, 25);
+            };
+            poll();
+          });
+          bc.postMessage({
+            type: "waitdone",
+            name: data.name,
+          });
+        }
+        break;
+      }
+      case "var": {
+        vm.runtime.extensionStorage.mesh.variables[data.key] = data.value;
+        break;
+      }
+      case "waitdone": {
+        lastSuccessfulMeshage = data.name;
+        break;
+      }
+    }
+  };
+  // dummy message to activate the broadcastchannel
+  bc.postMessage({ type: "hello" });
+
   class Mesh {
-    getMeshages() {
-      const meshages = getMeshages();
+    getMeshagesForMenu() {
+      const meshages = getMeshages().sort();
       return meshages.length === 0 ? [""] : meshages;
     }
-    new() {
+    getMeshVarsForMenu() {
+      const meshvars = Object.keys(getMeshVars()).sort();
+      return meshvars.length === 0 ? [""] : meshvars;
+    }
+    newMsg() {
       // taken from SharkPool/Camera
       // in a Button Context, ScratchBlocks always exists
       ScratchBlocks.prompt(
-        Scratch.translate("New mesh name:"),
+        Scratch.translate("New message name:"),
         "",
-        (value) => addMeshage(value),
-        Scratch.translate("Make a Mesh"),
+        addMeshage,
+        Scratch.translate("Mesh Manager"),
         "broadcast_msg"
       );
     }
-    remove() {
+    removeMsg() {
       // taken from SharkPool/Camera
       // in a Button Context, ScratchBlocks always exists
       ScratchBlocks.prompt(
-        Scratch.translate("Remove mesh named:"),
+        Scratch.translate("Remove message named:"),
         "",
-        (value) => delMeshage(value),
-        Scratch.translate("Remove a Mesh"),
+        delMeshage,
+        Scratch.translate("Mesh Manager"),
+        "broadcast_msg"
+      );
+    }
+    newVar() {
+      // taken from SharkPool/Camera
+      // in a Button Context, ScratchBlocks always exists
+      ScratchBlocks.prompt(
+        Scratch.translate(
+          "New variable name (this variable will be available to all sprites):"
+        ),
+        "",
+        addMeshVar,
+        Scratch.translate("Mesh Manager"),
+        "broadcast_msg"
+      );
+    }
+    removeVar() {
+      // taken from SharkPool/Camera
+      // in a Button Context, ScratchBlocks always exists
+      ScratchBlocks.prompt(
+        Scratch.translate("Remove variable named:"),
+        "",
+        delMeshVar,
+        Scratch.translate("Mesh Manager"),
         "broadcast_msg"
       );
     }
@@ -86,64 +156,185 @@
       return {
         id: "eightxtwoMesh",
         name: Scratch.translate("Mesh"),
-        // todo: pick better colours
-        color1: "#00acff",
-        color2: "#0088cc",
-        color3: "#0078b4ff",
+        docsURI: "https://extensions.turbowarp.org/8to16/mesh",
+        color1: "#4cdab2",
+        color2: "#44cda5",
+        color3: "#3dc099",
         blocks: [
           {
-            func: "new",
+            func: "newMsg",
             blockType: Scratch.BlockType.BUTTON,
-            text: Scratch.translate("Make a Mesh"),
+            text: Scratch.translate("Make a Message"),
           },
-          ...(getMeshages().length !== 0
-            ? [
-                {
-                  func: "remove",
-                  blockType: Scratch.BlockType.BUTTON,
-                  text: Scratch.translate("Remove a Mesh"),
-                },
-                {
-                  opcode: "when",
-                  blockType: Scratch.BlockType.EVENT,
-                  text: Scratch.translate("when I receive mesh [BROADCAST]"),
-                  isEdgeActivated: false,
-                  arguments: {
-                    BROADCAST: {
-                      type: Scratch.ArgumentType.STRING,
-                      menu: "MESHES_NOACCEPT",
-                    },
-                  },
-                },
-                {
-                  opcode: "broadcast",
-                  blockType: Scratch.BlockType.COMMAND,
-                  text: Scratch.translate("broadcast mesh [BROADCAST]"),
-                  arguments: {
-                    BROADCAST: {
-                      type: Scratch.ArgumentType.STRING,
-                      menu: "MESHES_ACCEPT",
-                    },
-                  },
-                },
-              ]
-            : []),
+          {
+            func: "removeMsg",
+            blockType: Scratch.BlockType.BUTTON,
+            text: Scratch.translate("Remove a Message"),
+            hideFromPalette: getMeshages().length === 0,
+          },
+          {
+            opcode: "when",
+            blockType: Scratch.BlockType.EVENT,
+            text: Scratch.translate("when I receive [BROADCAST]"),
+            isEdgeActivated: false,
+            hideFromPalette: getMeshages().length === 0,
+            arguments: {
+              BROADCAST: {
+                type: Scratch.ArgumentType.STRING,
+                menu: "MESHES_NOACCEPT",
+              },
+            },
+          },
+          {
+            opcode: "broadcast",
+            blockType: Scratch.BlockType.COMMAND,
+            text: Scratch.translate("broadcast [BROADCAST]"),
+            hideFromPalette: getMeshages().length === 0,
+            arguments: {
+              BROADCAST: {
+                type: Scratch.ArgumentType.STRING,
+                menu: "MESHES_ACCEPT",
+              },
+            },
+          },
+          {
+            opcode: "broadcastWait",
+            blockType: Scratch.BlockType.COMMAND,
+            text: Scratch.translate("broadcast [BROADCAST] and wait"),
+            hideFromPalette: getMeshages().length === 0,
+            arguments: {
+              BROADCAST: {
+                type: Scratch.ArgumentType.STRING,
+                menu: "MESHES_ACCEPT",
+              },
+            },
+          },
+          ...(getMeshages().length === 0 ? [] : ["---"]),
+          {
+            func: "newVar",
+            blockType: Scratch.BlockType.BUTTON,
+            text: Scratch.translate("Make a Variable"),
+          },
+          {
+            func: "removeVar",
+            blockType: Scratch.BlockType.BUTTON,
+            text: Scratch.translate("Remove a Variable"),
+            hideFromPalette: Object.keys(getMeshVars()).length === 0,
+          },
+          {
+            opcode: "getVar",
+            blockType: Scratch.BlockType.REPORTER,
+            text: Scratch.translate("get [VAR]"),
+            arguments: {
+              VAR: {
+                type: Scratch.ArgumentType.STRING,
+                menu: "VARS",
+              },
+            },
+            hideFromPalette: Object.keys(getMeshVars()).length === 0,
+          },
+          {
+            opcode: "setVar",
+            blockType: Scratch.BlockType.COMMAND,
+            text: Scratch.translate("set [VAR] to [VALUE]"),
+            arguments: {
+              VAR: {
+                type: Scratch.ArgumentType.STRING,
+                menu: "VARS",
+              },
+              VALUE: {
+                type: Scratch.ArgumentType.STRING,
+                defaultValue: "",
+              },
+            },
+            hideFromPalette: Object.keys(getMeshVars()).length === 0,
+          },
+          {
+            opcode: "changeVar",
+            blockType: Scratch.BlockType.COMMAND,
+            text: Scratch.translate("change [VAR] by [VALUE]"),
+            arguments: {
+              VAR: {
+                type: Scratch.ArgumentType.STRING,
+                menu: "VARS",
+              },
+              VALUE: {
+                type: Scratch.ArgumentType.NUMBER,
+                defaultValue: "1",
+              },
+            },
+            hideFromPalette: Object.keys(getMeshVars()).length === 0,
+          },
         ],
         menus: {
           MESHES_ACCEPT: {
             acceptReporters: true,
-            items: "getMeshages",
+            items: "getMeshagesForMenu",
           },
           MESHES_NOACCEPT: {
             acceptReporters: false,
-            items: "getMeshages",
+            items: "getMeshagesForMenu",
+          },
+          VARS: {
+            acceptReporters: true,
+            items: "getMeshVarsForMenu",
           },
         },
       };
     }
 
     broadcast({ BROADCAST }) {
-      bc.postMessage({ name: BROADCAST, session: session });
+      vm.runtime.startHats("eightxtwoMesh_when", {
+        BROADCAST: data.name,
+      });
+      bc.postMessage({
+        type: "broadcast",
+        name: BROADCAST,
+        willWait: false,
+      });
+    }
+    async broadcastWait({ BROADCAST }) {
+      vm.runtime.startHats("eightxtwoMesh_when", {
+        BROADCAST: data.name,
+      });
+      bc.postMessage({
+        type: "broadcast",
+        name: BROADCAST,
+        willWait: true,
+      });
+      let isDone = false;
+      while (!isDone) {
+        if (lastSuccessfulMeshage !== BROADCAST) {
+          await new Promise((resolve) => resolve());
+        }
+      }
+    }
+
+    getVar({ VAR }) {
+      return vm.runtime.extensionStorage.mesh.variables[VAR];
+    }
+    setVar({ VAR, VALUE }) {
+      vm.runtime.extensionStorage.mesh.variables[VAR] = VALUE;
+      bc.postMessage({
+        type: "var",
+        key: VAR,
+        value: VALUE,
+      });
+    }
+    changeVar({ VAR, VALUE }) {
+      vm.runtime.extensionStorage.mesh.variables[VAR] =
+        vm.runtime.extensionStorage.mesh.variables[VAR] =
+          Scratch.Cast.toNumber(
+            vm.runtime.extensionStorage.mesh.variables[VAR]
+          ) + Scratch.Cast.toNumber(VALUE);
+      bc.postMessage({
+        type: "var",
+        key: VAR,
+        value:
+          +Scratch.Cast.toNumber(
+            vm.runtime.extensionStorage.mesh.variables[VAR]
+          ) + Scratch.Cast.toNumber(VALUE),
+      });
     }
   }
 
