@@ -17,37 +17,37 @@
   let connectedUsers = 0;
   let finishedWaits = {};
 
-  if (!vm.runtime.extensionStorage.mesh)
-    vm.runtime.extensionStorage.mesh = { messages: [], variables: {} };
+  if (!vm.runtime.extensionStorage["mesh"])
+    vm.runtime.extensionStorage["mesh"] = { messages: [], variables: {} };
   vm.runtime.on("RUNTIME_DISPOSED", () => {
-    vm.runtime.extensionStorage.mesh = { messages: [], variables: {} };
+    vm.runtime.extensionStorage["mesh"] = { messages: [], variables: {} };
   });
   vm.runtime.on("PROJECT_LOADED", () => {
     vm.runtime.extensionManager.refreshBlocks();
   });
 
   // Message utilities
-  const getMeshages = () => vm.runtime.extensionStorage?.mesh.messages ?? [];
+  const getMeshages = () => vm.runtime.extensionStorage["mesh"].messages ?? [];
   const addMeshage = (name) => {
     if (getMeshages().includes(name)) return;
     if (name === "") return;
-    vm.runtime.extensionStorage.mesh.messages = [...getMeshages(), name];
+    vm.runtime.extensionStorage["mesh"].messages = [...getMeshages(), name];
     vm.extensionManager.refreshBlocks();
   };
   const delMeshage = (name) => {
     if (!getMeshages().includes(name)) return;
-    vm.runtime.extensionStorage.mesh.messages = getMeshages().filter(
+    vm.runtime.extensionStorage["mesh"].messages = getMeshages().filter(
       (n) => n !== name
     );
     vm.extensionManager.refreshBlocks();
   };
 
   // Var utilities
-  const getMeshVars = () => vm.runtime.extensionStorage?.mesh.variables ?? {};
+  const getMeshVars = () => vm.runtime.extensionStorage["mesh"].variables ?? {};
   const addMeshVar = (name) => {
     if (Object.keys(getMeshVars()).includes(name)) return;
     if (name === "") return;
-    vm.runtime.extensionStorage.mesh.variables = {
+    vm.runtime.extensionStorage["mesh"].variables = {
       ...getMeshVars(),
       [name]: "",
     };
@@ -55,7 +55,7 @@
   };
   const delMeshVar = (name) => {
     if (Object.keys(getMeshVars()).includes(name)) return;
-    vm.runtime.extensionStorage.mesh.variables = Object.fromEntries(
+    vm.runtime.extensionStorage["mesh"].variables = Object.fromEntries(
       Object.entries(getMeshVars()).filter((v) => v[0] !== name)
     );
     vm.extensionManager.refreshBlocks();
@@ -86,7 +86,7 @@
         break;
       }
       case "var": {
-        vm.runtime.extensionStorage.mesh.variables[data.key] = data.value;
+        vm.runtime.extensionStorage["mesh"].variables[data.key] = data.value;
         break;
       }
       case "done": {
@@ -319,10 +319,10 @@
     }
 
     getVar({ VAR }) {
-      return vm.runtime.extensionStorage.mesh.variables[VAR];
+      return vm.runtime.extensionStorage["mesh"].variables[VAR];
     }
     setVar({ VAR, VALUE }) {
-      vm.runtime.extensionStorage.mesh.variables[VAR] = VALUE;
+      vm.runtime.extensionStorage["mesh"].variables[VAR] = VALUE;
       bc.postMessage({
         type: "var",
         key: VAR,
@@ -330,13 +330,14 @@
       });
     }
     changeVar({ VAR, VALUE }) {
-      vm.runtime.extensionStorage.mesh.variables[VAR] +=
-        Scratch.Cast.toNumber(vm.runtime.extensionStorage.mesh.variables[VAR]) +
-        Scratch.Cast.toNumber(VALUE);
+      vm.runtime.extensionStorage["mesh"].variables[VAR] +=
+        Scratch.Cast.toNumber(
+          vm.runtime.extensionStorage["mesh"].variables[VAR]
+        ) + Scratch.Cast.toNumber(VALUE);
       bc.postMessage({
         type: "var",
         key: VAR,
-        value: vm.runtime.extensionStorage.mesh.variables[VAR],
+        value: vm.runtime.extensionStorage["mesh"].variables[VAR],
       });
     }
   }
