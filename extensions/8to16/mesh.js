@@ -337,9 +337,7 @@
     }
     changeVar({ VAR, VALUE }) {
       vm.runtime.extensionStorage["8to16mesh"].variables[VAR] +=
-        Scratch.Cast.toNumber(
-          vm.runtime.extensionStorage["8to16mesh"].variables[VAR]
-        ) + Scratch.Cast.toNumber(VALUE);
+        Scratch.Cast.toNumber(VALUE);
       bc.postMessage({
         type: "var",
         key: VAR,
