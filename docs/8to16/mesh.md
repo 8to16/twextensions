@@ -9,12 +9,12 @@ To setup a connection between a project, create a mesh in one project, and then 
 ## Blocks
 
 ```scratch
-broadcast mesh ( v) :: #00acff
+broadcast mesh (mesh name v) :: #00acff
 ```
 This block sends a mesh to all other projects that have the extension running. It triggers the hat block below in projects that listen for the mesh.
 
 ```scratch
-when I receive mesh ( v) :: #00acff hat
+when I receive mesh [mesh name v] :: #00acff hat
 ```
 This block will activate when another project sends *this* project a mesh with the same name. It is triggered using the block above in any other project.
 
