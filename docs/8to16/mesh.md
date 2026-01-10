@@ -1,6 +1,6 @@
 # Mesh
 
-Mesh lets you communicate with other projects running in the same browser, using a special type of message called a mesh.
+Mesh lets you communicate with other projects running in the same browser or in TurboWarp Desktop, using a special type of message called a mesh.
 
 ## Setup
 
