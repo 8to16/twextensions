@@ -326,4 +326,4 @@ All images in this folder are licensed under the [GNU General Public License ver
  - Created by [@Dillon](https://github.com/DillonRGaming)
 
  ## 8to16/mesh.svg
- - Creatde by [@kx1bx1](https://github.com/kx1bx1) in https://github.com/TurboWarp/extensions/pull/2382#issuecomment-3731596025
+ - Created by [@kx1bx1](https://github.com/kx1bx1) in https://github.com/TurboWarp/extensions/pull/2382#issuecomment-3731596025
