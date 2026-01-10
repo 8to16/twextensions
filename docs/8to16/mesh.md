@@ -19,8 +19,8 @@ in projects that listen for the mesh.
 ```scratch
 when I receive mesh ( v) :: #00acff hat
 ```
-This block will activate when another project sends you a mesh with the same name. It is triggered using the block
-above in any other project.
+This block will activate when another project sends *this* project a mesh with the same name. It is triggered
+using the block above in any other project.
 
 > [!IMPORTANT]
 > Projects cannot access variables or lists stored in each other, even if they have the same name and they
