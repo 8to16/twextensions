@@ -63,7 +63,6 @@
 
   // Handle messages on the broadcastchannel
   bc.onmessage = async ({ data }) => {
-    console.log(data);
     switch (data.type) {
       case "broadcast": {
         let hats = vm.runtime.startHats("eightxtwoMesh_when", {
@@ -91,9 +90,7 @@
         break;
       }
       case "done": {
-        console.log(finishedWaits);
         ++finishedWaits[data.name];
-        console.log(finishedWaits);
         break;
       }
       case "ping": {
@@ -318,6 +315,7 @@
         };
         poll();
       });
+      delete finishedWaits[BROADCAST];
     }
 
     getVar({ VAR }) {
