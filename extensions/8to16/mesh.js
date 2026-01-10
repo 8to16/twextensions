@@ -1,6 +1,6 @@
 // Name: Mesh
 // ID: eightxtwoMesh
-// Description: Send messages to other projects.
+// Description: Send and receive messages between other projects.
 // By: 8to16 <https://scratch.mit.edu/users/8to16/>
 // License: MPL-2.0
 
@@ -105,17 +105,6 @@
                   text: Scratch.translate("Remove a Mesh"),
                 },
                 {
-                  opcode: "broadcast",
-                  blockType: Scratch.BlockType.COMMAND,
-                  text: Scratch.translate("broadcast mesh [BROADCAST]"),
-                  arguments: {
-                    BROADCAST: {
-                      type: Scratch.ArgumentType.STRING,
-                      menu: "MESHES_ACCEPT",
-                    },
-                  },
-                },
-                {
                   opcode: "when",
                   blockType: Scratch.BlockType.EVENT,
                   text: Scratch.translate("when I receive mesh [BROADCAST]"),
@@ -124,6 +113,17 @@
                     BROADCAST: {
                       type: Scratch.ArgumentType.STRING,
                       menu: "MESHES_NOACCEPT",
+                    },
+                  },
+                },
+                {
+                  opcode: "broadcast",
+                  blockType: Scratch.BlockType.COMMAND,
+                  text: Scratch.translate("broadcast mesh [BROADCAST]"),
+                  arguments: {
+                    BROADCAST: {
+                      type: Scratch.ArgumentType.STRING,
+                      menu: "MESHES_ACCEPT",
                     },
                   },
                 },
