@@ -12,8 +12,10 @@
   }
   const vm = Scratch.vm;
 
+  // Init the broadcastchannel
   const bc = new BroadcastChannel("extensions.turbowarp.org/8to16/mesh");
-  let lastSuccessfulMeshage = "";
+  let connectedUsers = 0;
+  let finishedWaits = {};
 
   if (!vm.runtime.extensionStorage.mesh)
     vm.runtime.extensionStorage.mesh = { messages: [], variables: {} };
@@ -24,7 +26,7 @@
     vm.runtime.extensionManager.refreshBlocks();
   });
 
-  // Spaghetti ahead!
+  // Message utilities
   const getMeshages = () => vm.runtime.extensionStorage?.mesh.messages ?? [];
   const addMeshage = (name) => {
     if (getMeshages().includes(name)) return;
@@ -40,6 +42,7 @@
     vm.extensionManager.refreshBlocks();
   };
 
+  // Var utilities
   const getMeshVars = () => vm.runtime.extensionStorage?.mesh.variables ?? {};
   const addMeshVar = (name) => {
     if (Object.keys(getMeshVars()).includes(name)) return;
@@ -58,29 +61,28 @@
     vm.extensionManager.refreshBlocks();
   };
 
+  // Handle messages on the broadcastchannel
   bc.onmessage = async ({ data }) => {
+    console.log(data);
     switch (data.type) {
       case "broadcast": {
         let hats = vm.runtime.startHats("eightxtwoMesh_when", {
           BROADCAST: data.name,
         });
+        // broadcast and wait handling
         if (data.willWait) {
           await new Promise((resolve) => {
             const poll = () => {
               if (
-                hats.filter(
-                  (thread) => vm.runtime.threads.indexOf(thread) === -1
-                ).length === 0
+                hats.filter((thread) => vm.runtime.threads.includes(thread))
+                  .length === 0
               )
                 resolve();
-              else setTimeout(poll, 25);
+              else setTimeout(poll, 5);
             };
             poll();
           });
-          bc.postMessage({
-            type: "waitdone",
-            name: data.name,
-          });
+          bc.postMessage({ type: "done", name: data.name });
         }
         break;
       }
@@ -88,14 +90,24 @@
         vm.runtime.extensionStorage.mesh.variables[data.key] = data.value;
         break;
       }
-      case "waitdone": {
-        lastSuccessfulMeshage = data.name;
+      case "done": {
+        console.log(finishedWaits);
+        ++finishedWaits[data.name];
+        console.log(finishedWaits);
+        break;
+      }
+      case "ping": {
+        connectedUsers = 0;
+        bc.postMessage({ type: "pong" });
+        break;
+      }
+      case "pong": {
+        connectedUsers += 1;
         break;
       }
     }
   };
-  // dummy message to activate the broadcastchannel
-  bc.postMessage({ type: "hello" });
+  setTimeout(() => bc.postMessage({ type: "ping" }), 50);
 
   class Mesh {
     getMeshagesForMenu() {
@@ -284,9 +296,7 @@
     }
 
     broadcast({ BROADCAST }) {
-      vm.runtime.startHats("eightxtwoMesh_when", {
-        BROADCAST: data.name,
-      });
+      vm.runtime.startHats("eightxtwoMesh_when", { BROADCAST });
       bc.postMessage({
         type: "broadcast",
         name: BROADCAST,
@@ -294,20 +304,20 @@
       });
     }
     async broadcastWait({ BROADCAST }) {
-      vm.runtime.startHats("eightxtwoMesh_when", {
-        BROADCAST: data.name,
-      });
+      finishedWaits[BROADCAST] = 0;
+      vm.runtime.startHats("eightxtwoMesh_when", { BROADCAST }); // TODO: add wait here
       bc.postMessage({
         type: "broadcast",
         name: BROADCAST,
         willWait: true,
       });
-      let isDone = false;
-      while (!isDone) {
-        if (lastSuccessfulMeshage !== BROADCAST) {
-          await new Promise((resolve) => resolve());
-        }
-      }
+      await new Promise((resolve) => {
+        const poll = () => {
+          if (finishedWaits[BROADCAST] >= connectedUsers) resolve();
+          else setTimeout(poll, 25);
+        };
+        poll();
+      });
     }
 
     getVar({ VAR }) {
@@ -322,11 +332,9 @@
       });
     }
     changeVar({ VAR, VALUE }) {
-      vm.runtime.extensionStorage.mesh.variables[VAR] =
-        vm.runtime.extensionStorage.mesh.variables[VAR] =
-          Scratch.Cast.toNumber(
-            vm.runtime.extensionStorage.mesh.variables[VAR]
-          ) + Scratch.Cast.toNumber(VALUE);
+      vm.runtime.extensionStorage.mesh.variables[VAR] +=
+        Scratch.Cast.toNumber(vm.runtime.extensionStorage.mesh.variables[VAR]) +
+        Scratch.Cast.toNumber(VALUE);
       bc.postMessage({
         type: "var",
         key: VAR,
