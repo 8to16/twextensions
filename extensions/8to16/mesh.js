@@ -336,10 +336,7 @@
       bc.postMessage({
         type: "var",
         key: VAR,
-        value:
-          +Scratch.Cast.toNumber(
-            vm.runtime.extensionStorage.mesh.variables[VAR]
-          ) + Scratch.Cast.toNumber(VALUE),
+        value: vm.runtime.extensionStorage.mesh.variables[VAR],
       });
     }
   }
