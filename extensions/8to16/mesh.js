@@ -49,7 +49,6 @@
   })();
 
   bc.onmessage = ({ data }) => {
-    console.log(data);
     if (data.session === session) return;
     vm.runtime.startHats("eightxtwoMesh_when", {
       BROADCAST: data.name,
