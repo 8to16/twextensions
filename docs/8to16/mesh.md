@@ -18,12 +18,12 @@ The blocks below are equivalent to other blocks in Scratch, but are received by 
 ```scratch
 when I receive [message v] :: #4cdab2 hat
 ```
-This block will activate when another project sends *this* project a message with the same name. It is triggered using the block above in any other project.
+This block will activate when another project sends *this* project a message with the same name. It is triggered using the block below in any other project.
 
 ```scratch
 broadcast (message v) :: #4cdab2
 ```
-This block sends a message to all other projects that have the extension running. It triggers the hat block below in projects that listen for the message.
+This block sends a message to all other projects that have the extension running. It triggers the hat block above in projects that listen for the message.
 
 ```scratch
 broadcast (message v) and wait :: #4cdab2
